@@ -299,6 +299,45 @@ class UserModel {
         $stmt = $this->db->prepare("DELETE FROM user_remember_tokens WHERE user_id = ?");
         return $stmt->execute([$userId]);
     }
+
+    /* List a user's live remember-me tokens. Never exposes validator_hash. */
+    public function listRememberTokensByUserId(int $userId): array {
+        $this->initRememberTokensTable();
+        $stmt = $this->db->prepare(
+            "SELECT id, selector, expires_at, created_at FROM user_remember_tokens WHERE user_id = ? AND expires_at > NOW() ORDER BY created_at DESC"
+        );
+        $stmt->execute([$userId]);
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /* Delete one token only when it belongs to the given user (ownership check). */
+    public function deleteRememberTokenForUser(int $userId, string $selector): bool {
+        $this->initRememberTokensTable();
+        $stmt = $this->db->prepare("DELETE FROM user_remember_tokens WHERE selector = ? AND user_id = ?");
+        $stmt->execute([$selector, $userId]);
+        return $stmt->rowCount() > 0;
+    }
+
+    /* Delete all of a user's tokens except the kept selector. Returns rows deleted. */
+    public function deleteOtherRememberTokens(int $userId, ?string $keepSelector): int {
+        $this->initRememberTokensTable();
+        if ($keepSelector !== null && $keepSelector !== '') {
+            $stmt = $this->db->prepare("DELETE FROM user_remember_tokens WHERE user_id = ? AND selector <> ?");
+            $stmt->execute([$userId, $keepSelector]);
+        } else {
+            $stmt = $this->db->prepare("DELETE FROM user_remember_tokens WHERE user_id = ?");
+            $stmt->execute([$userId]);
+        }
+        return $stmt->rowCount();
+    }
+
+    /* Delete every expired token. Returns rows deleted. */
+    public function pruneExpiredRememberTokens(): int {
+        $this->initRememberTokensTable();
+        $stmt = $this->db->prepare("DELETE FROM user_remember_tokens WHERE expires_at <= NOW()");
+        $stmt->execute();
+        return $stmt->rowCount();
+    }
 }
 
 

@@ -80,6 +80,9 @@ $router->post('/profile/edit', [ProfileController::class, 'updateProfile']);
 $router->post('/profile/change-password', [ProfileController::class, 'changePassword']);
 $router->post('/profile/change-password/verify', [ProfileController::class, 'verifyPassword']);
 $router->post('/profile/delete', [ProfileController::class, 'deleteAccount']);
+$router->get('/profile/sessions', [ProfileController::class, 'showSessions']);
+$router->post('/profile/sessions/revoke', [ProfileController::class, 'revokeSession']);
+$router->post('/profile/sessions/revoke-others', [ProfileController::class, 'revokeOtherSessions']);
 
 /* Found Item */
 $router->get('/found', [ItemController::class, 'listFoundItems']);
